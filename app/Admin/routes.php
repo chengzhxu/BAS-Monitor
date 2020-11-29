@@ -33,7 +33,9 @@ Route::group([
     $router->any('/ad/save', 'AdController@save')->name('ad.save');
 
     //Campaign
-    $router->get('campaign/listing', 'CampaignController@grid');
+    $router->get('/campaign', 'CampaignController@listing')->name('campaign.listing');
+    $router->get('/campaign/create', 'CampaignController@create')->name('campaign.create');
+    $router->post('/campaign/upload_ad', 'CampaignController@upload_ad')->name('campaign.upload_ad');
 
 
 });

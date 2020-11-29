@@ -3,6 +3,8 @@
 namespace App\Admin\Controllers;
 
 use App\Models\Ad;
+use App\Models\Campaign;
+use App\Models\Format;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
@@ -24,19 +26,53 @@ class AdController extends AdminAbstract
     public function listing(Content $content){
         $grid = new Grid(new Ad());
 
-        $grid->model()->orderBy('adid','desc');
-        $grid->quickSearch('title');
+        //广告形式过滤
+        $format_list = app()->make(Format::class)->getAllFormat(true);
+        $campaign_list = app()->make(Campaign::class)->getAllCampaign(true);
 
-        $grid->column('adid' ,'Ad Id')->sortable();
-        $grid->column('title', '标题');
-        $grid->column('time_start', '开始时间');
-        $grid->column('time_end', '结束时间');
-
-        $grid->filter(function ($filter){
+        $grid->filter(function ($filter) use ($format_list, $campaign_list){
             $filter->disableIdFilter();
 
             // 添加新的字段过滤器（通过标题过滤）
+            $filter->equal('id', 'AdID');
             $filter->like('title', '标题');
+            $filter->in('formatid', '广告形式')->multipleSelect($format_list);
+            $filter->in('campaignid', '订单')->multipleSelect($campaign_list);
+        });
+
+        $grid->model()->orderBy('adid','desc');
+        $grid->quickSearch('title');
+
+        $grid->column('adid' ,'AdID')->sortable();
+        $grid->column('title', '标题');
+        $grid->column('campaign.title', '所属订单');
+        $grid->column('time_start', '开始时间');
+        $grid->column('time_end', '结束时间');
+        $grid->column('format.title', '广告形式');
+        $grid->column('monitorType.title', '监测方式');
+        $grid->column('basMonitorType.title', 'BAS监测');
+
+//        $grid->tools(function ($tools){
+//            $tools->append(
+//                '<a href="excel" class ="btn btn-sm btn-success"">导入</a>
+//            ');
+//        });
+
+        $grid->column('Region')->display(function () {
+            return '我是地区';
+        });
+
+        $a = 'ABC';
+
+        $grid->column('re_conf', '定向')->display(function ($re_conf) use ($a) {
+            $rf = json_encode($re_conf);
+            return "<span class='label label-warning'>{$a}</span>" . "-xx";
+        });
+
+        $grid->rows(function ($row){
+            if($row->number%2 == 0){
+                $row->style("background-color:#eee");
+            }
         });
 
 
@@ -57,7 +93,7 @@ class AdController extends AdminAbstract
         $form->setAction('/admin/ad/save');
 
         $form->text('title', '标题')->creationRules(['required', "unique:" . $ad->getTable()]);
-        $form->datetimeRange('time_start', 'time_end', 'Time Range');
+        $form->datetimeRange('time_start', 'time_end', '广告周期');
 
         $form->tools(function (Form\Tools $tools) {
             // 去掉`删除`按钮
