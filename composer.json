@@ -12,7 +12,8 @@
         "encore/laravel-admin": "1.8.10",
         "fideloper/proxy": "^4.0",
         "laravel/framework": "5.8.*",
-        "laravel/tinker": "^1.0"
+        "laravel/tinker": "^1.0",
+        "phpoffice/phpspreadsheet": "^1.15"
     },
     "require-dev": {
         "beyondcode/laravel-dump-server": "^1.0",
@@ -39,6 +40,9 @@
         "classmap": [
             "database/seeds",
             "database/factories"
+        ],
+        "files": [
+            "app/Helper/helpers.php"
         ]
     },
     "autoload-dev": {
