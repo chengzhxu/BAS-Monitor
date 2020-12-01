@@ -76,3 +76,98 @@ if(!function_exists('array_combine_v')){
         return $result;
     }
 }
+
+
+if(!function_exists('is_date')){
+    function is_date($dateString){
+        return strtotime( date('Y-m-d', strtotime($dateString)) ) === strtotime( $dateString );
+    }
+}
+
+
+
+/**
+ * @param string $file_name excel表的表名
+ * @param array $data 要导出excel表的数据，接受一个二维数组
+ * @param array $head excel表的表头，接受一个一维数组
+ * @param array $user_style 列样式
+ * @param string $sheet_name sheet名字
+ * @throws \PhpOffice\PhpSpreadsheet\Exception
+ * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
+ */
+if(!function_exists('exportExcel')){
+    function exportExcel($file_name = '', $data = [], $head = [],$format = "xlsx", $user_style = [], $sheet_name = '', $merge_col = []){
+        set_time_limit(0);
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        if($sheet_name){
+            if(strlen($sheet_name) > 30){
+                $sheet_name = mb_strimwidth($sheet_name, 0, 28, "...");
+            }
+            $sheet->setTitle($sheet_name);
+        }
+
+//        $sheet->setTitle('表名');
+        $letter = 'A';
+        foreach($head as $values){
+            $sheet->setCellValue($letter.'1', $values);
+            ++$letter;
+        }
+        if($user_style){
+            foreach ($user_style as $key => $val){
+                if(Q($val, 'column') && Q($val, 'value')){
+                    $sheet->getColumnDimension(Q($val, 'column'))->setWidth(Q($val, 'value'));
+                }
+            }
+        }
+        if(is_array($data)){
+            foreach($data as $k=>$v){
+                $letter = 'A';
+                $k = $k+2;
+                reset($head);
+                foreach($head as $key=>$value){
+                    $testKey = explode('.',$key);
+                    if(count($testKey)>1){
+                        $val = $v[$testKey[0]][$testKey[1]];
+                    }else{
+                        $v = array_values($v);
+
+                        $val = isset($v[$key]) ? $v[$key] : '';
+                    }
+                    if($merge_col){
+                        foreach($merge_col as $mk=>$mv) {
+                            $sheet->setCellValue($letter.$k, $val);
+                            $sheet->mergeCells($mk.':'.$mv);
+                        }
+                    }else{
+                        $sheet->setCellValue($letter.$k, $val);
+                    }
+                    ++$letter;
+                }
+            }
+        }
+        ob_end_clean();
+        if ($format == 'xls') {
+            //输出Excel03版本
+            header('Content-Type:application/vnd.ms-excel');
+            $class = "\PhpOffice\PhpSpreadsheet\Writer\Xls";
+        } elseif ($format == 'xlsx') {
+            //输出07Excel版本
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            $class = "\PhpOffice\PhpSpreadsheet\Writer\Xlsx";
+        }
+        //输出名称
+        header('Content-Disposition:attachment;filename="'.mb_convert_encoding($file_name,"GB2312", "utf-8").'.'.$format.'"');
+        //禁止缓存
+        header('Cache-Control: max-age=0');
+        $writer = new $class($spreadsheet);
+//        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+
+        $writer->save('php://output');
+//
+        //删除清空：
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+        exit;
+    }
+}

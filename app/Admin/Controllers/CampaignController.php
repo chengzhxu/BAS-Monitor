@@ -2,17 +2,15 @@
 
 namespace App\Admin\Controllers;
 
+use App\Action\ExportAdSchedule;
+use App\Action\ImportAdSchedule;
+use App\Exports\AdSchedule;
 use App\Models\Ad;
 use App\Models\Campaign;
-use App\Models\Region;
 use App\Tool\Tool;
-use App\User;
-use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
-use Encore\Admin\Show;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\MessageBag;
 
 class CampaignController extends AdminAbstract
@@ -44,20 +42,28 @@ class CampaignController extends AdminAbstract
             $filter->like('title', '标题');
         });
 
-        //禁用创建按钮
-//        $grid->disableCreateButton();
-        //禁用导出按钮
-//        $grid->disableExport();
-//        $grid->disableRowSelector();
+
         //禁用行操作列
-        $grid->disableActions();
-        //禁用行选择器
-//        $grid->disableColumnSelector();
+//        $grid->disableActions();
 
         $grid->tools(function ($tools) {
             $tools->batch(function ($batch) {
                 $batch->disableDelete();
             });
+
+//            $tools->append(
+//                '<a href="/admin/campaign/import_schedule" class ="btn btn-sm btn-success"">导入</a>
+//            ');
+            $tools->append(new ImportAdSchedule());
+        });
+
+        $grid->actions(function ($actions) {
+            // 去掉删除
+            $actions->disableDelete();
+            // 去掉查看
+            $actions->disableView();
+
+            $actions->add(new ExportAdSchedule());
         });
 
         return $content
@@ -77,7 +83,6 @@ class CampaignController extends AdminAbstract
         $form->setAction('/admin/campaign/upload_ad');
 
         $form->text('campaign_title', '订单名称');
-//        $form->datetimeRange('time_start', 'time_end', '订单周期');
 //        $form->multipleSelect('regions')->options(Region::all()->pluck('region_name', 'region_code'));
         $form->file('campaign_file', '文件');
 
@@ -136,8 +141,6 @@ class CampaignController extends AdminAbstract
                     $err_msg = implode(';', $errData);
                 }
             }
-//            $content->withWarning('提示：', $err_msg);
-
             if(!$err_msg){
                 return redirect('/admin/campaign/');
             }
@@ -148,7 +151,7 @@ class CampaignController extends AdminAbstract
                 'message' => $err_msg,
             ]);
             return back()->with(compact('error'));
-//            return $this->response()->success('成功...');
+//            return $this->response()->warning($err_msg);
         }catch (\Exception $e){
             logger($e);
         }
@@ -164,5 +167,29 @@ class CampaignController extends AdminAbstract
         }
 
         return '';
+    }
+
+
+
+    /**
+     * 导出订单下的 ad 排期
+     */
+    public function export_schedule($campaignid){
+        $result = [];
+        $file_name = '广告排期';
+        if($campaignid){
+            $campaign = app()->make(Campaign::class)->fetchRowByPrimary($campaignid);
+            $file_name = Q($campaign, 'title') . '-' . $file_name;
+            $result = AdSchedule::getAdScheduleByCampaign($campaignid);
+        }
+
+        return Tool::exportExcel($file_name, $result);
+    }
+
+    /**
+     * 导入广告排期文件
+     */
+    public function import_schedule(){
+        dd(1122);
     }
 }

@@ -4,6 +4,8 @@
 namespace App\Models;
 
 
+use Admin\Model\AssetModel;
+use App\Tool\Tool;
 use Illuminate\Support\Facades\DB;
 
 class Campaign extends  BasModel
@@ -95,20 +97,74 @@ class Campaign extends  BasModel
                     }
                     $appids = Q($_row, 'appid') ? explode(',', $_row['appid']) : [];  //app
 
-                    $re_conf = ['region_code' => $region_codes, 'appid' => $appids];
 
-                    $ad = [
-                        'title' => $_row['ad_title'],
-                        'campaignid' => $campaignid,
-                        'time_start' => $ad_time_start,
-                        'time_end' => $ad_time_end,
-                        'formatid' => $formatid,
-                        'monitor_id' => intval(Q($_row, 'monitor_type')),
-                        'bas_monitor_id' => intval(Q($_row, 'bas_monitor_type')) + 100,
-                        're_conf' => json_encode($re_conf)
-                    ];
-                    if(!app()->make(Ad::class)->addOne($ad)){
-                        $errData[] = '第【' . ($_k + 1) . '】行的广告创建失败，请检查';;
+                    $assetids = [];     //素材
+                    if(Q($_row, 'asset_url')){
+                        $asset_url_arr = is_array($_row['asset_url']) ? $_row['asset_url'] : [$_row['asset_url']];
+                        $asset_seconds_arr = is_array($_row['seconds']) ? $_row['seconds'] : [$_row['seconds']];
+
+                        $asset_letter = 'A';
+                        foreach ($asset_url_arr as $_ak => $asset_url) {
+                            $event_keys = isset($asset_events[$_ak]) ? $asset_events[$_ak] : [];
+                            if (trim($asset_url)) {
+                                $events = [];
+                                foreach ($event_keys as $_ek => $_ev){
+                                    $events_arr = Q($_row, $_ek) ? $_row[$_ek] : [];
+                                    foreach ($_ev as $_e){
+                                        if(is_array($events_arr)){
+                                            $_url = (isset($events_arr[$_e]) && !empty($events_arr[$_e])) ? $events_arr[$_e] : '';
+                                        }else{
+                                            $_url = $events_arr;
+                                        }
+                                        if($_url){
+                                            if(filter_var(trim($_url), FILTER_VALIDATE_URL)){
+                                                $events[] = ['event' => $_ek, 'url' => $_url];
+                                            }else{
+                                                array_push($errData, '广告【'.Q($_row, 'ad_title').'】,监测事件为【'.$_ek.'】的URL填写错误');
+                                            }
+                                        }
+                                    }
+                                }
+
+                                $asset_title = count($asset_url_arr) > 1 ? trim(Q($_row, 'ad_title')) . '_' . $asset_letter : trim(Q($_row, 'ad_title'));
+                                $monitor = ['events' => array_values(isset($events) ? Tool::validateTrackEvent($events) : [])];
+                                $asset = [
+                                    'title' => $asset_title,
+                                    'duration' => isset($asset_seconds_arr[$_ak]) ? intval($asset_seconds_arr[$_ak]) : 0,
+                                    'url' => trim($asset_url),
+                                    'status' => 9,
+                                    'monitor' => json_encode($monitor)
+                                ];
+                                $assetid = app()->make(Asset::class)->addOne($asset);
+                                if ($assetid) {
+                                    array_push($assetids, $assetid);
+                                } else {
+                                    $errData[] = '地址为【' . Q($_row, 'asset_url') . '】的素材添加失败';
+                                    continue;
+                                }
+                            }
+                            $asset_letter++;
+                        }
+                    }
+
+                    if(!$errData){
+                        $re_conf = ['region_code' => $region_codes, 'appid' => $appids, 'assetid' => $assetids];
+
+                        $ad = [
+                            'title' => $_row['ad_title'],
+                            'campaignid' => $campaignid,
+                            'time_start' => $ad_time_start,
+                            'time_end' => $ad_time_end,
+                            'formatid' => $formatid,
+                            'monitor_id' => intval(Q($_row, 'monitor_type')),
+                            'bas_monitor_id' => intval(Q($_row, 'bas_monitor_type')) + 100,
+                            're_conf' => json_encode($re_conf)
+                        ];
+                        if(!app()->make(Ad::class)->addOne($ad)){
+                            $errData[] = '第【' . ($_k + 1) . '】行的广告创建失败，请检查';;
+                        }
+                    }else{
+                        continue;
                     }
                 }
             }
@@ -124,4 +180,5 @@ class Campaign extends  BasModel
             return implode(';', $errData);
         }
     }
+
 }

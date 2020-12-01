@@ -4,6 +4,10 @@
 namespace App\Tool;
 
 
+
+use App\Exports\AdExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 class Tool
 {
     public function getExcelColumn($str_cn = ''){
@@ -164,5 +168,44 @@ class Tool
         }
 
         return ['file_data' => $res, 'asset_events' => $ast_events, 'arr_title' => $arr_title, 'file_title' => $file_title, 'tem_data' => $tem_data, 'suc_data' => $suc_data, 'errData' => $errData];
+    }
+
+
+
+
+    public static function validateTrackEvent($data){
+        return array_unique(array_values($data), SORT_REGULAR);
+    }
+
+
+    /**
+     * 排期日期
+    */
+    public static function getScheduleTemplateByTime($start_time = '', $end_time = ''){
+        $date_list = [];
+        $val_list = [];
+        if($start_time && $end_time){
+            $start_time = strtotime($start_time);
+            $end_time = strtotime($end_time);
+
+            while ($start_time < $end_time){
+                array_push($date_list, date('Y-m-d',$start_time));
+                array_push($val_list, 0);
+                $start_time += 1*24*60*60;
+            }
+        }
+
+        return ['date_list' => $date_list, 'val_list' => $val_list];
+    }
+
+
+    /**
+     * 导出 excel
+    */
+    public static function exportExcel($file_name = '', $data = []){
+        if($data){
+            $file_name = $file_name ? $file_name : '导出文件';
+            return Excel::download(new AdExport($data),  $file_name .'.xlsx');
+        }
     }
 }
