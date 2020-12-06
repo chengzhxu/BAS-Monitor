@@ -74,7 +74,7 @@ class AdController extends AdminAbstract
         });
         $grid->column('time_start', '开始时间');
         $grid->column('time_end', '结束时间');
-        $grid->column('cap_detail', '频控')->display(function ($cap_detail) {
+        $grid->column('cap.re_conf', '频控')->display(function ($cap_detail) {
             $limit_arr = app()->make(Cap::class)->getCapDetail($cap_detail);
             $limit_info = $limit_arr ? implode(';', $limit_arr) : '';
             return  $limit_info ? "<span class='label label-warning'> $limit_info </span>" : '无';
@@ -248,19 +248,17 @@ class AdController extends AdminAbstract
             unset($ad['adid']);
 
             $cap_re_conf = ['re_conf' => json_encode($cap_detail)];
-            $new_capid = 0;
             if(Q($param, 'capid')){   //编辑频控
+                $capid = $param['capid'];
                 app()->make(Cap::class)->updateByPrimary($param['capid'], $cap_re_conf);
             }else{   //新增频控配置
-                $new_capid =  app()->make(Cap::class)->addOne($cap_re_conf);
+                $capid =  app()->make(Cap::class)->addOne($cap_re_conf);
             }
 
+            $ad['capid'] = $capid;
             if($adid){
                 app()->make(Ad::class)->updateByPrimary($adid, $ad);
             }else{
-                if($new_capid){
-                    $ad['capid'] = $new_capid;
-                }
                 app()->make(Ad::class)->addOne($ad);
             }
         }catch (\Exception $e){
