@@ -74,9 +74,8 @@ class AdController extends AdminAbstract
         });
         $grid->column('time_start', '开始时间');
         $grid->column('time_end', '结束时间');
-        $grid->column('cap.re_conf', '频控')->display(function ($cap_re_conf) {
-            $cap_arr = Q($cap_re_conf, 'cap') ? $cap_re_conf['cap'] : [];
-            $limit_arr = app()->make(Cap::class)->getCapDetail($cap_arr);
+        $grid->column('cap_detail', '频控')->display(function ($cap_detail) {
+            $limit_arr = app()->make(Cap::class)->getCapDetail($cap_detail);
             $limit_info = $limit_arr ? implode(';', $limit_arr) : '';
             return  $limit_info ? "<span class='label label-warning'> $limit_info </span>" : '无';
         });
