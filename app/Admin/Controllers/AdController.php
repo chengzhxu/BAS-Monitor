@@ -5,6 +5,7 @@ namespace App\Admin\Controllers;
 use App\Models\Ad;
 use App\Models\App;
 use App\Models\Campaign;
+use App\Models\Cap;
 use App\Models\Format;
 use App\Models\MonitorType;
 use App\Models\Region;
@@ -67,12 +68,18 @@ class AdController extends AdminAbstract
             $_str = "<span class='label label-warning'>{$region_info}</span>";
             if($app_arr){
                 $app_info = implode(',', $app_arr);
-                $_str .= "&nbsp;&nbsp;&nbsp; <span class='label label-warning'>{$app_info}</span>";
+                $_str .= "&nbsp;&nbsp;&nbsp; <span class='label label-success'>{$app_info}</span>";
             }
             return  $_str;
         });
         $grid->column('time_start', '开始时间');
         $grid->column('time_end', '结束时间');
+        $grid->column('cap.re_conf', '频控')->display(function ($cap_re_conf) {
+            $cap_arr = Q($cap_re_conf, 'cap') ? $cap_re_conf['cap'] : [];
+            $limit_arr = app()->make(Cap::class)->getCapDetail($cap_arr);
+            $limit_info = $limit_arr ? implode(';', $limit_arr) : '';
+            return  $limit_info ? "<span class='label label-warning'> $limit_info </span>" : '无';
+        });
         $grid->column('format.title', '广告形式');
         $grid->column('monitorType.title', '监测方式');
         $grid->column('basMonitorType.title', 'BAS监测');
@@ -105,12 +112,18 @@ class AdController extends AdminAbstract
         $form = new Form($ad);
 
         list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
+        $cap_arr = app()->make(Cap::class)->getCapSelect();    //频控
 
         $form->text('title', '标题')->creationRules(['required', "unique:" . $ad->getTable()]);
         $form->select('campaignid', '所属订单')->options(Campaign::all()->pluck('title', 'campaignid'));
 //        $form->datetimeRange('time_start', 'time_end', '广告周期');
         $form->datetime('time_start', '开始时间');
         $form->datetime('time_end', '结束时间');
+        $form->table('cap_detail','频控', function ($form) use ($cap_arr) {
+            $form->select('type', '')->options($cap_arr);
+            $form->text('value', '')->rules('required');
+        });
+
         $form->select('formatid', '广告形式')->options(Format::all()->pluck('title', 'formatid'));
         $form->select('monitor_id', '监测方式')->options($monitor_list);
         $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list);
@@ -134,32 +147,48 @@ class AdController extends AdminAbstract
     */
     public function edit($id, Content $content){
         try{
+            if($this->request->method() == 'POST'){
+                return $this->save($this->request);
+            }
             if($id){
-                $ad = app()->make(Ad::class)->fetchRowByPrimary($id);
-                $re_conf = Q($ad, 're_conf') ? json_decode($ad['re_conf'], true) : [];
+//                $ad = app()->make(Ad::class)->fetchRowByPrimary($id);
+//                $re_conf = Q($ad, 're_conf') ? json_decode($ad['re_conf'], true) : [];
+//                $region_arr = Q($re_conf, 'region_code') ? $re_conf['region_code'] : [];    //定向地区
+//                $appid_arr = Q($re_conf, 'appid') ? $re_conf['appid'] : [];    //定向渠道
+//
+                list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
+                $cap_arr = app()->make(Cap::class)->getCapSelect();    //频控
+
+                $form = new \Encore\Admin\Widgets\Form(Ad::findOrFail(intval($id)));
+
+                $re_conf = isset($form->data()['re_conf']) ? $form->data()['re_conf'] : [];
                 $region_arr = Q($re_conf, 'region_code') ? $re_conf['region_code'] : [];    //定向地区
                 $appid_arr = Q($re_conf, 'appid') ? $re_conf['appid'] : [];    //定向渠道
 
-                list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
+                $form->hidden('adid', 'AdID');
+                $form->hidden('capid', 'CapID');
+                $form->hidden('campaignid', 'CampaignID');
+                $form->text('title', '标题');
+                $form->datetime('time_start', '开始时间');
+                $form->datetime('time_end', '结束时间');
 
-                $form = new Form(new Ad());
-                $form->hidden('id', 'AdID')->value($ad['adid']);
-                $form->hidden('campaignid', 'CampaignID')->value($ad['campaignid']);
-                $form->text('title', '标题')->value($ad['title']);
-                $form->datetime('time_start', '开始时间')->value($ad['time_start']);
-                $form->datetime('time_end', '结束时间')->value($ad['time_end']);
-                $form->select('formatid', '广告形式')->options(Format::all()->pluck('title', 'formatid'))->value($ad['formatid']);
-                $form->select('monitor_id', '监测方式')->options($monitor_list)->value($ad['monitor_id']);
-                $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list)->value($ad['bas_monitor_id']);
+                $form->table('cap_detail','频控', function ($form) use ($cap_arr) {
+                    $form->select('type', '')->options($cap_arr);
+                    $form->text('value', '')->rules('required');
+                });
+
+                $form->select('formatid', '广告形式')->options(Format::all()->pluck('title', 'formatid'));
+                $form->select('monitor_id', '监测方式')->options($monitor_list);
+                $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list);
                 $form->multipleSelect('appids', '定向渠道')->options(App::all()->pluck('title', 'appid'))->value($appid_arr);
                 $form->multipleSelect('region_codes', '定向地区')->options(Region::all()->pluck('region_name', 'region_code'))->value($region_arr);
 
-                $worktime = Q($ad, 'worktime') ? json_decode($ad['worktime'], true) : "[]";
-                $form->hidden('worktime', '排期')->attribute('id', 'worktime')->value($worktime);
+//                $worktime = Q($ad, 'worktime') ? json_decode($ad['worktime'], true) : "[]";
+                $form->hidden('worktime', '排期')->attribute('id', 'worktime');
                 $form->timeSheet('body');
 
                 $this->formTools($form);
-                $form->setAction('/admin/ad/save');
+//                $form->setAction('/admin/ad/save');
 
                 return $content
                     ->header('Edit')
@@ -178,38 +207,61 @@ class AdController extends AdminAbstract
     public function save(Request $request){
         $param = $request->all();
         $entity = [
-            'id',
+            'adid',
             "title",
             "time_start",
             "time_end",
             "campaignid",
+            "capid",
             "formatid",
             "monitor_id",
             "bas_monitor_id",
             "appids",
             "region_codes",
-            'worktime'
+            'worktime',
+            'cap_detail'
         ];
 
         try{
             $ad = $this->validateByStructure($param, $entity);
 
-            $adid = (isset($param['id']) && !empty($param['id'])) ? $param['id'] : 0;
+            $adid = (isset($param['adid']) && !empty($param['adid'])) ? $param['adid'] : 0;
             $re_conf = [
                 'region_code' => isset($param['region_codes']) ? array_filter($param['region_codes']) : [],
                 'appid' => isset($param['appids']) ? array_filter($param['appids']) : [],
             ];
+
+            $cap_detail = [];  //频控
+            if(isset($param['cap_detail'])){
+                $cap_arr = array_values($param['cap_detail']);
+                foreach ($cap_arr as $_cap){
+                    $cap_detail[] = ['type' => intval(Q($_cap, 'type')), 'value' => intval(Q($_cap, 'value'))];
+                }
+            }
+
             $ad['re_conf'] = json_encode($re_conf);
+            $ad['cap_detail'] = json_encode($cap_detail);
             $worktime = isset($param['worktime']) ? $param['worktime'] : [];
             $ad['worktime'] = json_encode($worktime);
 
             unset($ad['appids']);
             unset($ad['region_codes']);
-            unset($ad['id']);
+            unset($ad['adid']);
+
+            $cap_re_conf = ['re_conf' => json_encode($cap_detail)];
+            $new_capid = 0;
+            if(Q($param, 'capid')){   //编辑频控
+                app()->make(Cap::class)->updateByPrimary($param['capid'], $cap_re_conf);
+            }else{   //新增频控配置
+                $new_capid =  app()->make(Cap::class)->addOne($cap_re_conf);
+            }
 
             if($adid){
                 app()->make(Ad::class)->updateByPrimary($adid, $ad);
             }else{
+                if($new_capid){
+                    $ad['capid'] = $new_capid;
+                }
                 app()->make(Ad::class)->addOne($ad);
             }
         }catch (\Exception $e){

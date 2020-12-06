@@ -31,7 +31,7 @@ Route::group([
     $router->get('/ad', 'AdController@listing')->name('ad.listing');   //广告列表
     $router->get('/ad/create', 'AdController@create')->name('ad.create');   //新建广告
     $router->any('/ad/save', 'AdController@save')->name('ad.save');    //保存广告
-    $router->get('/ad/{id}/edit', 'AdController@edit')->name('ad.edit');    //编辑广告
+    $router->any('/ad/{id}/edit', 'AdController@edit')->name('ad.edit');    //编辑广告
 
     //Campaign
     $router->get('/campaign', 'CampaignController@listing')->name('campaign.listing');   //订单列表
