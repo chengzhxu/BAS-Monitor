@@ -84,6 +84,40 @@ class Campaign extends  BasModel
                             }
                         }
                     }
+                    $cap = [];      //频控
+                    if(Q($_row, 'limit_day')){
+                        if(is_array(Q($_row, 'limit_day'))){
+                            $errData[] = '广告为【'.Q($_row, 'ad_title').'】的监测(每日监测)上传重复';
+                        }else{
+                            $l = [
+                                'type' => 0,
+                                'value' => trim(intval(Q($_row, 'limit_day')))
+                            ];
+                            array_push($cap, $l);
+                        }
+                    }
+                    if(Q($_row, 'limit_week')){
+                        if(is_array(Q($_row, 'limit_week'))){
+                            $errData[] = '广告为【'.Q($_row, 'ad_title').'】的监测(每周监测)上传重复';
+                        }else{
+                            $l = [
+                                'type' => 1,
+                                'value' => trim(intval(Q($_row, 'limit_week')))
+                            ];
+                            array_push($cap, $l);
+                        }
+                    }
+                    if(Q($_row, 'limit_period')){
+                        if(is_array(Q($_row, 'limit_period'))){
+                            $errData[] = '广告为【'.Q($_row, 'ad_title').'】的监测(周期监测)上传重复';
+                        }else{
+                            $l = [
+                                'type' => 2,
+                                'value' => trim(intval(Q($_row, 'limit_period')))
+                            ];
+                            array_push($cap, $l);
+                        }
+                    }
                     $formatid = 0;  //广告形式
                     if(is_numeric(Q($_row, 'format'))){
                         $formatid = intval(Q($_row, 'format'));
@@ -97,68 +131,75 @@ class Campaign extends  BasModel
                     }
                     $appids = Q($_row, 'appid') ? explode(',', $_row['appid']) : [];  //app
 
-
-                    $assetids = [];     //素材
-                    if(Q($_row, 'asset_url')){
-                        $asset_url_arr = is_array($_row['asset_url']) ? $_row['asset_url'] : [$_row['asset_url']];
-                        $asset_seconds_arr = is_array($_row['seconds']) ? $_row['seconds'] : [$_row['seconds']];
-
-                        $asset_letter = 'A';
-                        foreach ($asset_url_arr as $_ak => $asset_url) {
-                            $event_keys = isset($asset_events[$_ak]) ? $asset_events[$_ak] : [];
-                            if (trim($asset_url)) {
-                                $events = [];
-                                foreach ($event_keys as $_ek => $_ev){
-                                    $events_arr = Q($_row, $_ek) ? $_row[$_ek] : [];
-                                    foreach ($_ev as $_e){
-                                        if(is_array($events_arr)){
-                                            $_url = (isset($events_arr[$_e]) && !empty($events_arr[$_e])) ? $events_arr[$_e] : '';
-                                        }else{
-                                            $_url = $events_arr;
-                                        }
-                                        if($_url){
-                                            if(filter_var(trim($_url), FILTER_VALIDATE_URL)){
-                                                $events[] = ['event' => $_ek, 'url' => $_url];
-                                            }else{
-                                                array_push($errData, '广告【'.Q($_row, 'ad_title').'】,监测事件为【'.$_ek.'】的URL填写错误');
-                                            }
-                                        }
-                                    }
-                                }
-
-                                $asset_title = count($asset_url_arr) > 1 ? trim(Q($_row, 'ad_title')) . '_' . $asset_letter : trim(Q($_row, 'ad_title'));
-                                $monitor = ['events' => array_values(isset($events) ? Tool::validateTrackEvent($events) : [])];
-                                $asset = [
-                                    'title' => $asset_title,
-                                    'duration' => isset($asset_seconds_arr[$_ak]) ? intval($asset_seconds_arr[$_ak]) : 0,
-                                    'url' => trim($asset_url),
-                                    'status' => 9,
-                                    'monitor' => json_encode($monitor)
-                                ];
-                                $assetid = app()->make(Asset::class)->addOne($asset);
-                                if ($assetid) {
-                                    array_push($assetids, $assetid);
-                                } else {
-                                    $errData[] = '地址为【' . Q($_row, 'asset_url') . '】的素材添加失败';
-                                    continue;
-                                }
-                            }
-                            $asset_letter++;
-                        }
-                    }
+//                    $assetids = [];     //素材
+//                    if(Q($_row, 'asset_url')){
+//                        $asset_url_arr = is_array($_row['asset_url']) ? $_row['asset_url'] : [$_row['asset_url']];
+//                        $asset_seconds_arr = is_array($_row['seconds']) ? $_row['seconds'] : [$_row['seconds']];
+//
+//                        $asset_letter = 'A';
+//                        foreach ($asset_url_arr as $_ak => $asset_url) {
+//                            $event_keys = isset($asset_events[$_ak]) ? $asset_events[$_ak] : [];
+//                            if (trim($asset_url)) {
+//                                $events = [];
+//                                foreach ($event_keys as $_ek => $_ev){
+//                                    $events_arr = Q($_row, $_ek) ? $_row[$_ek] : [];
+//                                    foreach ($_ev as $_e){
+//                                        if(is_array($events_arr)){
+//                                            $_url = (isset($events_arr[$_e]) && !empty($events_arr[$_e])) ? $events_arr[$_e] : '';
+//                                        }else{
+//                                            $_url = $events_arr;
+//                                        }
+//                                        if($_url){
+//                                            if(filter_var(trim($_url), FILTER_VALIDATE_URL)){
+//                                                $events[] = ['event' => $_ek, 'url' => $_url];
+//                                            }else{
+//                                                array_push($errData, '广告【'.Q($_row, 'ad_title').'】,监测事件为【'.$_ek.'】的URL填写错误');
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//
+//                                $asset_title = count($asset_url_arr) > 1 ? trim(Q($_row, 'ad_title')) . '_' . $asset_letter : trim(Q($_row, 'ad_title'));
+//                                $monitor = ['events' => array_values(isset($events) ? Tool::validateTrackEvent($events) : [])];
+//                                $asset = [
+//                                    'title' => $asset_title,
+//                                    'duration' => isset($asset_seconds_arr[$_ak]) ? intval($asset_seconds_arr[$_ak]) : 0,
+//                                    'url' => trim($asset_url),
+//                                    'status' => 9,
+//                                    'monitor' => json_encode($monitor)
+//                                ];
+//                                $assetid = app()->make(Asset::class)->addOne($asset);
+//                                if ($assetid) {
+//                                    array_push($assetids, $assetid);
+//                                } else {
+//                                    $errData[] = '地址为【' . Q($_row, 'asset_url') . '】的素材添加失败';
+//                                    continue;
+//                                }
+//                            }
+//                            $asset_letter++;
+//                        }
+//                    }
 
                     if(!$errData){
-                        $re_conf = ['region_code' => $region_codes, 'appid' => $appids, 'assetid' => $assetids];
+                        $re_conf = ['region_code' => $region_codes, 'appid' => $appids];   //'assetid' => $assetids
+                        $cap_re_conf = ['re_conf' => json_encode($cap)];
+                        $capid =  app()->make(Cap::class)->addOne($cap_re_conf);     //绑定频控
+                        $bas_monitor_type = intval(Q($_row, 'bas_monitor_type'));
+                        if($bas_monitor_type < 100){
+                            $bas_monitor_type += 100;
+                        }
 
                         $ad = [
                             'title' => $_row['ad_title'],
                             'campaignid' => $campaignid,
+                            'capid' => $capid,
                             'time_start' => $ad_time_start,
                             'time_end' => $ad_time_end,
                             'formatid' => $formatid,
                             'monitor_id' => intval(Q($_row, 'monitor_type')),
-                            'bas_monitor_id' => intval(Q($_row, 'bas_monitor_type')) + 100,
-                            're_conf' => json_encode($re_conf)
+                            'bas_monitor_id' => $bas_monitor_type,
+                            're_conf' => json_encode($re_conf),
+                            'cap_detail' => json_encode($cap)
                         ];
                         if(!app()->make(Ad::class)->addOne($ad)){
                             $errData[] = '第【' . ($_k + 1) . '】行的广告创建失败，请检查';;
