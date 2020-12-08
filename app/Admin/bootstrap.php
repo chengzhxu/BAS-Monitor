@@ -19,12 +19,8 @@
  */
 
 use App\Extensions\TimeSheet;
-use Encore\Admin\Facades\Admin;
 use Encore\Admin\Form;
 
 Encore\Admin\Form::forget(['map', 'editor']);
 
 Form::extend('timeSheet', TimeSheet::class);
-
-Admin::disablePjax();
-
