@@ -4,15 +4,15 @@ use Illuminate\Routing\Router;
 
 Admin::routes();
 
-Route::group([
-    'prefix'        => config('admin.route.prefix'),
-    'namespace'     => config('admin.route.namespace'),
-    'middleware'    => config('admin.route.middleware'),
-    'as'            => config('admin.route.`prefix`') . '.',
-], function (Router $router) {
-
-    $router->get('/', 'HomeController@index')->name('home');
-});
+//Route::group([
+//    'prefix'        => config('admin.route.prefix'),
+//    'namespace'     => config('admin.route.namespace'),
+//    'middleware'    => config('admin.route.middleware'),
+//    'as'            => config('admin.route.`prefix`') . '.',
+//], function (Router $router) {
+//
+//    $router->get('/', 'HomeController@index')->name('home');
+//});
 
 
 //BM
@@ -22,6 +22,9 @@ Route::group([
     'middleware'    => config('admin.route.middleware'),
     'as'            => config('admin.route.`prefix`') . '.',
 ], function (Router $router) {
+    //Home
+    $router->get('/', 'HomeController@index')->name('home');
+
     //Ad
     $router->any('/ad', 'AdController@listing')->name('ad.listing');   //广告列表
     $router->get('/ad/create', 'AdController@create')->name('ad.create');   //新建广告
