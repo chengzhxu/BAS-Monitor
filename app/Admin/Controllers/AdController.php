@@ -234,7 +234,9 @@ class AdController extends AdminAbstract
             if(isset($param['cap_detail'])){
                 $cap_arr = array_values($param['cap_detail']);
                 foreach ($cap_arr as $_cap){
-                    $cap_detail[] = ['type' => intval(Q($_cap, 'type')), 'value' => intval(Q($_cap, 'value'))];
+                    if(!Q($_cap, '_remove_')){
+                        $cap_detail[] = ['type' => intval(Q($_cap, 'type')), 'value' => intval(Q($_cap, 'value'))];
+                    }
                 }
             }
 
