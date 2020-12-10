@@ -1,3 +1,21 @@
+# BAS-Monitor
+BAS-Monitor 后台系统
+
+## 框架
+
+`Laravel 5.8`
+`Laravel-Admin 1.8.10`
+
+## FAQ
+
+`1：因为模板类型问题，每次更新 composer 后需修改 [vendor/symfony/dom-crawler/Crawler.php] 以下两个地方`</p>
+
+`a： function:createSubCrawler(); line：1214;  去除返回类型 object`</p>
+`b： function:filterRelativeXPath(); line：968;  去除返回类型 object`</p>
+
+##
+
+
 <p align="center"><img src="https://res.cloudinary.com/dtfbvvkyp/image/upload/v1566331377/laravel-logolockup-cmyk-red.svg" width="400"></p>
 
 <p align="center">
