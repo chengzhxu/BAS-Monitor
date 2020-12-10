@@ -8,7 +8,7 @@ BAS-Monitor 后台系统
 
 ## FAQ
 
-`1：因为模板类型问题，每次更新 composer 后需修改 [vendor/symfony/dom-crawler/Crawler.php] 以下两个地方`</p>
+`1：因为模板类型问题，每次更新 composer 后需修改 [vendor/symfony/dom-crawler/Crawler.php] 以下两个地方 (仅在 Linux 系统发现该问题)`</p>
 
 `a： function:createSubCrawler(); line：1214;  去除返回类型 object`</p>
 `b： function:filterRelativeXPath(); line：968;  去除返回类型 object`</p>
