@@ -2,13 +2,18 @@
 
 namespace App\Admin\Controllers;
 
+use App\Action\ExportAdMonitor;
+use App\Action\ImportAdSchedule;
+use App\Exports\AdMonitorExtra;
 use App\Models\Ad;
 use App\Models\App;
 use App\Models\Campaign;
 use App\Models\Cap;
 use App\Models\Format;
+use App\Models\Media;
 use App\Models\MonitorType;
 use App\Models\Region;
+use App\Tool\Tool;
 use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
@@ -80,13 +85,25 @@ class AdController extends AdminAbstract
             return  $limit_info ? "<span class='label label-warning'> $limit_info </span>" : '无';
         });
         $grid->column('format.title', '广告形式');
-        $grid->column('monitorType.title', '监测方式');
-        $grid->column('basMonitorType.title', 'BAS监测');
+        $grid->column('media.title', '媒体');
+//        $grid->column('monitorType.title', '监测方式');
+//        $grid->column('basMonitorType.title', 'BAS监测');
 
         $grid->rows(function ($row){
             if($row->number%2 == 0){
                 $row->style("background-color:#eee");
             }
+        });
+
+        $grid->tools(function ($tools) {
+            $tools->batch(function ($batch) {
+                $batch->disableDelete();
+            });
+        });
+
+        //批量导出监测代码
+        $grid->batchActions(function ($batch) {
+            $batch->add(new ExportAdMonitor());
         });
 
         $grid->actions(function ($actions) {
@@ -110,7 +127,7 @@ class AdController extends AdminAbstract
         $ad = new Ad();
         $form = new Form($ad);
 
-        list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
+//        list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
         $cap_arr = app()->make(Cap::class)->getCapSelect();    //频控
 
         $form->text('title', '标题')->creationRules(['required', "unique:" . $ad->getTable()]);
@@ -124,8 +141,9 @@ class AdController extends AdminAbstract
         });
 
         $form->select('formatid', '广告形式')->options(Format::all()->pluck('title', 'formatid'));
-        $form->select('monitor_id', '监测方式')->options($monitor_list);
-        $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list);
+        $form->select('mediaid', '媒体')->options(Media::all()->pluck('title', 'mediaid'));
+//        $form->select('monitor_id', '监测方式')->options($monitor_list);
+//        $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list);
         $form->multipleSelect('appids', '定向渠道')->options(App::all()->pluck('title', 'appid'));
         $form->multipleSelect('region_codes', '定向地区')->options(Region::all()->pluck('region_name','region_code'));
         $form->hidden('worktime', '排期')->attribute('id', 'worktime')->value("[]");
@@ -150,12 +168,7 @@ class AdController extends AdminAbstract
                 return $this->save($this->request);
             }
             if($id){
-//                $ad = app()->make(Ad::class)->fetchRowByPrimary($id);
-//                $re_conf = Q($ad, 're_conf') ? json_decode($ad['re_conf'], true) : [];
-//                $region_arr = Q($re_conf, 'region_code') ? $re_conf['region_code'] : [];    //定向地区
-//                $appid_arr = Q($re_conf, 'appid') ? $re_conf['appid'] : [];    //定向渠道
-//
-                list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
+//                list($monitor_list, $bas_monitor_list) = app()->make(MonitorType::class)->getMonitorList(true);     //监测方式
                 $cap_arr = app()->make(Cap::class)->getCapSelect();    //频控
 
                 $form = new \Encore\Admin\Widgets\Form(Ad::findOrFail(intval($id)));
@@ -177,8 +190,9 @@ class AdController extends AdminAbstract
                 });
 
                 $form->select('formatid', '广告形式')->options(Format::all()->pluck('title', 'formatid'));
-                $form->select('monitor_id', '监测方式')->options($monitor_list);
-                $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list);
+                $form->select('mediaid', '媒体')->options(Media::all()->pluck('title', 'mediaid'));
+//                $form->select('monitor_id', '监测方式')->options($monitor_list);
+//                $form->select('bas_monitor_id', 'BAS监测')->options($bas_monitor_list);
                 $form->multipleSelect('appids', '定向渠道')->options(App::all()->pluck('title', 'appid'))->value($appid_arr);
                 $form->multipleSelect('region_codes', '定向地区')->options(Region::all()->pluck('region_name', 'region_code'))->value($region_arr);
 
@@ -187,7 +201,7 @@ class AdController extends AdminAbstract
                 $form->timeSheet('body');
 
                 $this->formTools($form);
-//                $form->setAction('/admin/ad/save');
+                $form->action('/admin/ad/save');
 
                 return $content
                     ->header('Edit')
@@ -213,6 +227,7 @@ class AdController extends AdminAbstract
             "campaignid",
             "capid",
             "formatid",
+            "mediaid",
             "monitor_id",
             "bas_monitor_id",
             "appids",
@@ -268,6 +283,24 @@ class AdController extends AdminAbstract
         }
 
         return redirect('/admin/ad/');
+    }
+
+
+    /**
+     * 批量导出广告监测代码
+    */
+    public function exportBatchMonitor($adids = ''){
+        $result = [];
+        try{
+            if($adids){
+                $adid_arr = explode(',', $adids);
+                $result = AdMonitorExtra::getMonitorExtraData($adid_arr);
+            }
+        }catch (\Exception $e){
+            logger($e);
+        }
+
+        return Tool::exportExcel('广告监测代码', $result);
     }
 
 

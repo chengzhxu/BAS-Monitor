@@ -183,7 +183,6 @@ $config = [
 
     //投放代码域名
     'monitor_domain' => [
-//        'boooba.com',
         'bnc66.com'
     ],
 
@@ -210,6 +209,36 @@ $config = [
             'text' => 'OTT-常驻角标',
         ],
     ],
+
+    //媒体属性
+    'media_type' => [
+        [
+            'type' => 1,
+            'text' => '游戏',
+        ],
+        [
+            'type' => 2,
+            'text' => '点播',
+        ],
+        [
+            'type' => 3,
+            'text' => '直播',
+        ],
+        [
+            'type' => 4,
+            'text' => '综合',
+        ],
+        [
+            'type' => 5,
+            'text' => '其他',
+        ],
+    ],
+
+
+    //Campaign 投放监测代码
+    'campaign_extra' => [
+        'put_url' => 'http://ppsport.bnc66.com/v1/pdb?campaign_id={CAMPAIGN_ID}&ip=__IP__&mac_raw=[MAC]&ts=__TIMESTAMP__&mac1=__MAC1__&mac=__MAC__&chan=__CHID__&iesid=__IESID__&make=__MAKE__&sys=__SYSTEM__&model=__MODEL__&os=[OS]&osv=__OSV__&ua=__UA__&android=__ANDROIDID__&imei=__IMEI__&rs=__RESOLUTION__'
+    ]
 ];
 
 

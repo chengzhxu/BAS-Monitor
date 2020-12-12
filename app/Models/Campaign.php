@@ -184,10 +184,10 @@ class Campaign extends  BasModel
                         $re_conf = ['region_code' => $region_codes, 'appid' => $appids];   //'assetid' => $assetids
                         $cap_re_conf = ['re_conf' => json_encode($cap)];
                         $capid =  app()->make(Cap::class)->addOne($cap_re_conf);     //绑定频控
-                        $bas_monitor_type = intval(Q($_row, 'bas_monitor_type'));
-                        if($bas_monitor_type < 100){
-                            $bas_monitor_type += 100;
-                        }
+//                        $bas_monitor_type = intval(Q($_row, 'bas_monitor_type'));
+//                        if($bas_monitor_type < 100){
+//                            $bas_monitor_type += 100;
+//                        }
 
                         $ad = [
                             'title' => $_row['ad_title'],
@@ -196,8 +196,8 @@ class Campaign extends  BasModel
                             'time_start' => $ad_time_start,
                             'time_end' => $ad_time_end,
                             'formatid' => $formatid,
-                            'monitor_id' => intval(Q($_row, 'monitor_type')),
-                            'bas_monitor_id' => $bas_monitor_type,
+//                            'monitor_id' => intval(Q($_row, 'monitor_type')),
+//                            'bas_monitor_id' => $bas_monitor_type,
                             're_conf' => json_encode($re_conf),
                             'cap_detail' => json_encode($cap)
                         ];

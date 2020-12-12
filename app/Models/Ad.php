@@ -37,6 +37,10 @@ class Ad extends  BasModel
         return $this->hasOne('App\Models\Format', 'formatid', 'formatid');
     }
 
+    public function media(){
+        return $this->hasOne('App\Models\Media', 'mediaid', 'mediaid');
+    }
+
     public function monitorType(){
         return $this->hasOne('App\Models\MonitorType', 'id', 'monitor_id');
     }

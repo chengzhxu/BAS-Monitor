@@ -2,9 +2,12 @@
 
 namespace App\Admin\Controllers;
 
+use App\Action\ExportAdMonitor;
 use App\Action\ExportAdSchedule;
+use App\Action\ExportCampaignExtra;
 use App\Action\ImportAdSchedule;
 use App\Exports\AdSchedule;
+use App\Exports\CampaignExtra;
 use App\Models\Ad;
 use App\Models\Campaign;
 use App\Tool\Tool;
@@ -12,6 +15,7 @@ use Encore\Admin\Form;
 use Encore\Admin\Grid;
 use Encore\Admin\Layout\Content;
 use Illuminate\Support\MessageBag;
+use function foo\func;
 
 class CampaignController extends AdminAbstract
 {
@@ -24,7 +28,7 @@ class CampaignController extends AdminAbstract
 
 
     /**
-     * 广告列表
+     * 订单列表
      */
     public function listing(Content $content){
         $grid = new Grid(new Campaign());
@@ -33,8 +37,10 @@ class CampaignController extends AdminAbstract
         $grid->quickSearch('title');
 
         $grid->column('campaignid' ,'Id')->sortable();
-        $grid->column('title', '标题');
-
+        $grid->column('title', '标题')->display(function($title){
+            $href = '/admin/ad?campaignid=' . $this->campaignid;
+            return "<a target=\"_blank\" href=".$href.">$title</a>";
+        });
         $grid->filter(function ($filter){
             $filter->disableIdFilter();
 
@@ -42,19 +48,16 @@ class CampaignController extends AdminAbstract
             $filter->like('title', '标题');
         });
 
-
-        //禁用行操作列
-//        $grid->disableActions();
-
         $grid->tools(function ($tools) {
             $tools->batch(function ($batch) {
                 $batch->disableDelete();
             });
-
-//            $tools->append(
-//                '<a href="/admin/campaign/import_schedule" class ="btn btn-sm btn-success"">导入</a>
-//            ');
             $tools->append(new ImportAdSchedule());
+        });
+
+        //批量导出监测代码
+        $grid->batchActions(function ($batch) {
+            $batch->add(new ExportCampaignExtra());
         });
 
         $grid->actions(function ($actions) {
@@ -174,7 +177,7 @@ class CampaignController extends AdminAbstract
     /**
      * 导出订单下的 ad 排期
      */
-    public function export_schedule($campaignid){
+    public function exportSchedule($campaignid){
         $result = [];
         $file_name = '广告排期';
         if($campaignid){
@@ -185,6 +188,25 @@ class CampaignController extends AdminAbstract
 
         return Tool::exportExcel($file_name, $result);
     }
+
+
+    /**
+     * 导出订单投放代码
+    */
+    public function exportBatchExtra($campaignids = ''){
+        $result = [];
+        try{
+            if($campaignids){
+                $campaignid_arr  = explode(',', $campaignids);
+                $result = CampaignExtra::getCampaignExtraData($campaignid_arr);
+            }
+        }catch (\Exception $e){
+            logger($e);
+        }
+
+        return Tool::exportExcel('订单投放代码', $result);
+    }
+
 
     /**
      * 导入广告排期文件
